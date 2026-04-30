@@ -290,30 +290,35 @@ def draw(ax_main, ax_bar, sheets, data):
     ax_main.figure.canvas.flush_events()
 
 # ── figure setup ───────────────────────────────────────────────────────────────
+plt.rcParams['toolbar'] = 'None'
 fig = plt.figure(figsize=(18, 9))
 fig.suptitle("Cargas TREC por Día y Chofer — Abril 2026",
              fontsize=15, fontweight="bold")
 gs      = gridspec.GridSpec(1, 2, width_ratios=[5, 1], wspace=0.05)
 ax_main = fig.add_subplot(gs[0])
 ax_bar  = fig.add_subplot(gs[1])
-fig.subplots_adjust(left=0.12, right=0.97, top=0.90, bottom=0.18)
+fig.subplots_adjust(left=0.12, right=0.97, top=0.90, bottom=0.22)
 
 print("Cargando datos desde Google Sheets...")
 data, sheets_loaded = load_data([])
 draw(ax_main, ax_bar, sheets_loaded, data)
 
 # ── botón actualizar ───────────────────────────────────────────────────────────
-ax_btn = fig.add_axes([0.44, 0.03, 0.14, 0.055])
-btn    = widgets.Button(ax_btn, "↺  Actualizar", color="#E3F2FD", hovercolor="#BBDEFB")
-btn.label.set_fontsize(11)
+ax_btn   = fig.add_axes([0.42, 0.06, 0.16, 0.08])
+btn      = widgets.Button(ax_btn, "↺  Actualizar", color="#E3F2FD", hovercolor="#BBDEFB")
+btn.label.set_fontsize(12)
 btn.label.set_fontweight("bold")
 
-AUTO_REFRESH_MS = 5 * 60 * 1000  # 5 minutos
+ts_text = fig.text(0.62, 0.10, "", fontsize=9, color="#666666", ha="left", va="center")
+
+AUTO_REFRESH_MS = 5 * 60 * 1000
 
 def on_refresh(event):
     print("Actualizando desde Google Sheets...")
     fresh, sheets_now = load_data([])
     draw(ax_main, ax_bar, sheets_now, fresh)
+    import datetime
+    ts_text.set_text(f"Actualizado: {datetime.datetime.now().strftime('%H:%M:%S')}")
     fig.canvas.draw()
     fig.canvas.flush_events()
     fig.savefig("cargas_por_chofer.png", dpi=150, bbox_inches="tight")
@@ -329,5 +334,5 @@ btn.on_clicked(on_refresh)
 auto_timer = fig.canvas.new_timer(interval=AUTO_REFRESH_MS)
 auto_timer.add_callback(_auto_refresh)
 auto_timer.start()
-print("Auto-refresh activo cada 5 minutos.")
+print("Auto-refresh activo cada 5 minutos. Boton visible en parte inferior.")
 plt.show()
