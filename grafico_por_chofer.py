@@ -140,7 +140,11 @@ def load_data(sheets):
     sheets = available  # override passed-in sheets with live list
 
     print(f"  {len(sheets)} hojas encontradas. Descargando datos completos...")
-    params = [("includeGridData", "true")] + [("ranges", s) for s in sheets]
+    params = (
+        [("includeGridData", "true")]
+        + [("ranges", s) for s in sheets]
+        + [("fields", "sheets(properties/title,data/rowData/values(userEnteredValue,userEnteredFormat/backgroundColor))")]
+    )
     resp = _get(url, headers, params=params, timeout=60)
     resp.raise_for_status()
     print("  Datos descargados. Procesando...")
