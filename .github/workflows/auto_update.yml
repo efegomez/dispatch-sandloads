@@ -1,0 +1,29 @@
+name: Auto Update Chart
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install pandas matplotlib numpy requests google-auth google-auth-oauthlib
+
+      - name: Write Google credentials
+        run: |
+          echo '${{ secrets.GOOGLE_TOKEN_JSON }}' > token.json
+          echo '${{ secrets.GOOGLE_CREDENTIALS_JSON }}' > credentials.json
+
+      - name: Run update
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: python auto_update.py
