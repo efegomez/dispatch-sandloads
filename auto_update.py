@@ -220,7 +220,7 @@ def generate_chart(data, sheets):
     gs      = gridspec.GridSpec(1, 2, width_ratios=[5, 1], wspace=0.05)
     ax_main = fig.add_subplot(gs[0])
     ax_bar  = fig.add_subplot(gs[1])
-    fig.subplots_adjust(left=0.12, right=0.97, top=0.90, bottom=0.18)
+    fig.subplots_adjust(left=0.12, right=0.97, top=0.90, bottom=0.25)
 
     dia_labels      = [f"Abr {s.split('.')[1]}" for s in sheets]
     y_labels        = sorted(data["label"].unique())
@@ -260,8 +260,9 @@ def generate_chart(data, sheets):
 
     pb_patch = mpatches.Patch(color=ROUTE_COLORS["PB"],          label="PB To Nash")
     vc_patch = mpatches.Patch(color=ROUTE_COLORS["Vista Crane"], label="Vista Crane To Nash")
-    ax_main.legend(handles=[pb_patch, vc_patch], fontsize=10, title="Ruta",
-                   loc="upper left", framealpha=0.9)
+    fig.legend(handles=[pb_patch, vc_patch], fontsize=10, title="Ruta",
+               loc="lower left", bbox_to_anchor=(0.50, 0.03),
+               framealpha=0.9, ncol=2)
 
     totals_ordered = [int(total_by_driver.get(lbl, 0)) for lbl in y_labels]
     bars = ax_bar.barh(range(len(y_labels)), totals_ordered,
