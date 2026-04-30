@@ -122,7 +122,8 @@ def load_data():
         if re.match(r"^\d{2}\.\d{2}$", s["properties"]["title"])
     ])
 
-    resp = requests.get(url, headers=headers, params={"includeGridData": "true"})
+    params = [("includeGridData", "true")] + [("ranges", s) for s in sheets]
+    resp = requests.get(url, headers=headers, params=params)
     resp.raise_for_status()
     sheet_data = {s["properties"]["title"]: s for s in resp.json().get("sheets", [])}
     records = []

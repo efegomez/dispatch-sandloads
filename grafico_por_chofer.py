@@ -112,14 +112,26 @@ def get_cell_value(cell):
         return uev["stringValue"]
     return None
 
+def _get(url, headers, params=None, retries=3, timeout=45):
+    for i in range(retries):
+        try:
+            return requests.get(url, headers=headers, params=params, timeout=timeout)
+        except Exception as e:
+            print(f"  Intento {i+1}/{retries} fallido: {e}")
+            if i == retries - 1:
+                raise
+            import time; time.sleep(3)
+
 def load_data(sheets):
+    print("  Obteniendo credenciales...")
     creds = get_credentials()
+    print("  Credenciales OK. Llamando API (nombres de hojas)...")
     token = creds.token
     headers = {"Authorization": f"Bearer {token}"}
     url = f"https://sheets.googleapis.com/v4/spreadsheets/{SPREADSHEET_ID}"
 
     # first fetch sheet names only (fast)
-    meta = requests.get(url, headers=headers).json()
+    meta = _get(url, headers, timeout=30).json()
     import re
     available = sorted([
         s["properties"]["title"] for s in meta.get("sheets", [])
@@ -127,9 +139,11 @@ def load_data(sheets):
     ])
     sheets = available  # override passed-in sheets with live list
 
-    params = {"includeGridData": "true"}
-    resp = requests.get(url, headers=headers, params=params)
+    print(f"  {len(sheets)} hojas encontradas. Descargando datos completos...")
+    params = [("includeGridData", "true")] + [("ranges", s) for s in sheets]
+    resp = _get(url, headers, params=params, timeout=60)
     resp.raise_for_status()
+    print("  Datos descargados. Procesando...")
     raw = resp.json()
 
     sheet_data = {s["properties"]["title"]: s for s in raw.get("sheets", [])}
