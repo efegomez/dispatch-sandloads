@@ -308,6 +308,7 @@ def draw(ax_main, ax_bar, sheets, data):
     ax_main.figure.canvas.flush_events()
 
 # ── figure setup ───────────────────────────────────────────────────────────────
+import threading, datetime
 plt.rcParams['toolbar'] = 'None'
 fig = plt.figure(figsize=(18, 9))
 fig.suptitle("Cargas TREC por Día y Chofer — Abril 2026",
@@ -317,40 +318,81 @@ ax_main = fig.add_subplot(gs[0])
 ax_bar  = fig.add_subplot(gs[1])
 fig.subplots_adjust(left=0.12, right=0.97, top=0.90, bottom=0.22)
 
-print("Cargando datos desde Google Sheets...")
-data, sheets_loaded = load_data([])
-draw(ax_main, ax_bar, sheets_loaded, data)
+PNG_PATH = Path(__file__).parent / "cargas_por_chofer.png"
 
-# ── botón actualizar ───────────────────────────────────────────────────────────
-ax_btn   = fig.add_axes([0.42, 0.06, 0.16, 0.08])
-btn      = widgets.Button(ax_btn, "↺  Actualizar", color="#E3F2FD", hovercolor="#BBDEFB")
+# mostrar PNG cacheado inmediatamente si existe
+if PNG_PATH.exists():
+    ax_main.imshow(plt.imread(str(PNG_PATH)), aspect="auto")
+    ax_main.axis("off")
+    ax_bar.axis("off")
+
+# ── botón y estado ─────────────────────────────────────────────────────────────
+ax_btn  = fig.add_axes([0.42, 0.06, 0.16, 0.08])
+btn     = widgets.Button(ax_btn, "↺  Actualizar", color="#E3F2FD", hovercolor="#BBDEFB")
 btn.label.set_fontsize(12)
 btn.label.set_fontweight("bold")
+ts_text = fig.text(0.62, 0.10, "Cargando...", fontsize=9, color="#E65100", ha="left", va="center")
 
-ts_text = fig.text(0.62, 0.10, "", fontsize=9, color="#666666", ha="left", va="center")
+# resultado compartido entre threads (solo main thread dibuja)
+_result  = [None]   # (data, sheets) o Exception
+_loading = [False]
 
-AUTO_REFRESH_MS = 5 * 60 * 1000
+def _fetch_worker():
+    try:
+        fresh, sheets_now = load_data([])
+        _result[0] = (fresh, sheets_now)
+    except Exception as e:
+        _result[0] = e
 
-def on_refresh(event):
-    print("Actualizando desde Google Sheets...")
-    fresh, sheets_now = load_data([])
+def _apply_result():
+    """Llamado desde main thread por timer cada 500ms."""
+    if _result[0] is None:
+        return
+    result = _result[0]
+    _result[0] = None
+    _loading[0] = False
+    btn.label.set_text("↺  Actualizar")
+    if isinstance(result, Exception):
+        ts_text.set_text(f"Error: {result}")
+        ts_text.set_color("#C62828")
+        fig.canvas.draw()
+        return
+    fresh, sheets_now = result
+    ax_main.clear(); ax_bar.clear()
     draw(ax_main, ax_bar, sheets_now, fresh)
-    import datetime
     ts_text.set_text(f"Actualizado: {datetime.datetime.now().strftime('%H:%M:%S')}")
+    ts_text.set_color("#2E7D32")
     fig.canvas.draw()
-    fig.canvas.flush_events()
-    fig.savefig("cargas_por_chofer.png", dpi=150, bbox_inches="tight")
-    push_to_github("cargas_por_chofer.png")
+    fig.savefig(str(PNG_PATH), dpi=150, bbox_inches="tight")
+    push_to_github(str(PNG_PATH))
     print("Listo.")
 
-def _auto_refresh():
-    print("[Auto] Actualizando...")
-    on_refresh(None)
+def _start_fetch():
+    if _loading[0]:
+        return
+    _loading[0] = True
+    _result[0] = None
+    btn.label.set_text("Cargando...")
+    ts_text.set_text("Descargando datos (~2 min)...")
+    ts_text.set_color("#E65100")
+    fig.canvas.draw()
+    threading.Thread(target=_fetch_worker, daemon=True).start()
+
+def on_refresh(event):
+    _start_fetch()
 
 btn.on_clicked(on_refresh)
 
-auto_timer = fig.canvas.new_timer(interval=AUTO_REFRESH_MS)
-auto_timer.add_callback(_auto_refresh)
+# timer que aplica resultados en main thread
+poll_timer = fig.canvas.new_timer(interval=500)
+poll_timer.add_callback(_apply_result)
+poll_timer.start()
+
+# auto-refresh de datos al arrancar + cada 5 min
+_start_fetch()
+auto_timer = fig.canvas.new_timer(interval=5 * 60 * 1000)
+auto_timer.add_callback(lambda: _start_fetch())
 auto_timer.start()
-print("Auto-refresh activo cada 5 minutos. Boton visible en parte inferior.")
+
+print("Ventana abierta. PNG cacheado visible. Datos frescos cargando en background (~2 min).")
 plt.show()
