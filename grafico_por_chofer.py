@@ -304,12 +304,11 @@ def draw(ax_main, ax_bar, sheets, data):
 
     pb_patch = mpatches.Patch(color=ROUTE_COLORS["PB"],          label="PB To Nash")
     vc_patch = mpatches.Patch(color=ROUTE_COLORS["Vista Crane"], label="Vista Crane To Nash")
-    # remove old fig-level legend before redrawing
     for leg in ax_main.figure.legends[:]:
         leg.remove()
-    ax_main.figure.legend(handles=[pb_patch, vc_patch], fontsize=10, title="Ruta",
-                          loc="lower left", bbox_to_anchor=(0.50, 0.03),
-                          framealpha=0.9, ncol=2)
+    ax_main.figure.legend(handles=[pb_patch, vc_patch], fontsize=9, title="Ruta",
+                          loc="lower left", bbox_to_anchor=(0.52, 0.06),
+                          framealpha=0.95, ncol=2, borderpad=0.6)
 
     totals_ordered = [int(total_by_driver.get(lbl, 0)) for lbl in y_labels]
     bars = ax_bar.barh(range(len(y_labels)), totals_ordered,
@@ -337,7 +336,7 @@ fig.suptitle("Cargas TREC por Día y Chofer — Abril 2026",
 gs      = gridspec.GridSpec(1, 2, width_ratios=[5, 1], wspace=0.05)
 ax_main = fig.add_subplot(gs[0])
 ax_bar  = fig.add_subplot(gs[1])
-fig.subplots_adjust(left=0.12, right=0.97, top=0.90, bottom=0.30)
+fig.subplots_adjust(left=0.12, right=0.97, top=0.90, bottom=0.22)
 
 PNG_PATH = Path(__file__).parent / "cargas_por_chofer.png"
 
@@ -348,11 +347,11 @@ if PNG_PATH.exists():
     ax_bar.axis("off")
 
 # ── botón y estado ─────────────────────────────────────────────────────────────
-ax_btn  = fig.add_axes([0.30, 0.08, 0.14, 0.10])
+ax_btn  = fig.add_axes([0.38, 0.06, 0.12, 0.08])
 btn     = widgets.Button(ax_btn, "↺  Actualizar", color="#E3F2FD", hovercolor="#BBDEFB")
-btn.label.set_fontsize(12)
+btn.label.set_fontsize(11)
 btn.label.set_fontweight("bold")
-ts_text = fig.text(0.30, 0.04, "Cargando...", fontsize=9, color="#E65100", ha="left", va="center")
+ts_text = fig.text(0.38, 0.02, "Cargando...", fontsize=9, color="#E65100", ha="left", va="center")
 
 # resultado compartido entre threads (solo main thread dibuja)
 _result  = [None]   # (data, sheets) o Exception
