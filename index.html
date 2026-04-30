@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="refresh" content="300">
   <title>Cargas TREC - Dispatch</title>
   <style>
     body { margin: 0; background: #1a1a2e; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: Arial, sans-serif; color: white; }
@@ -12,11 +11,9 @@
   </style>
 </head>
 <body>
-  <img src="cargas_por_chofer.png?v=" id="chart">
+  <img src="https://raw.githubusercontent.com/efegomez/dispatch-sandloads/20f281e99dc4de3b160d2dfb18c68eb22d468b05/cargas_por_chofer.png" id="chart">
   <p>Se actualiza automaticamente cada 5 minutos</p>
   <script>
-    // force reload image without cache
-    document.getElementById("chart").src = "cargas_por_chofer.png?v=" + Date.now();
     setInterval(() => location.reload(), 300000);
   </script>
 </body>
