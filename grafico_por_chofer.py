@@ -41,13 +41,12 @@ def push_to_github(png_path):
 
     # SHA único por commit → URL única → CDN siempre miss → imagen fresca
     commit_sha = r.json().get("commit", {}).get("sha", str(int(time.time())))
-    img_url = f"https://raw.githubusercontent.com/{GH_REPO}/{commit_sha}/{GH_FILE}"
-
     html = f"""<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <title>Cargas TREC - Dispatch</title>
   <style>
     body {{ margin: 0; background: #1a1a2e; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: Arial, sans-serif; color: white; }}
@@ -56,10 +55,16 @@ def push_to_github(png_path):
   </style>
 </head>
 <body>
-  <img src="{img_url}" id="chart">
-  <p>Se actualiza automaticamente cada 5 minutos</p>
+  <img id="chart">
+  <p id="ts">Cargando...</p>
   <script>
-    setInterval(() => location.reload(), 300000);
+    function reload() {{
+      var t = Date.now();
+      document.getElementById('chart').src = 'cargas_por_chofer.png?t=' + t;
+      document.getElementById('ts').textContent = 'Actualizado: ' + new Date(t).toLocaleTimeString();
+    }}
+    reload();
+    setInterval(reload, 60000);
   </script>
 </body>
 </html>"""
