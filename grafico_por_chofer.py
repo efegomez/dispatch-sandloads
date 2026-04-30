@@ -307,7 +307,7 @@ def draw(ax_main, ax_bar, sheets, data):
     for leg in ax_main.figure.legends[:]:
         leg.remove()
     ax_main.figure.legend(handles=[pb_patch, vc_patch], fontsize=9, title="Ruta",
-                          loc="lower left", bbox_to_anchor=(0.52, 0.06),
+                          loc="lower left", bbox_to_anchor=(0.52, 0.03),
                           framealpha=0.95, ncol=2, borderpad=0.6)
 
     totals_ordered = [int(total_by_driver.get(lbl, 0)) for lbl in y_labels]
@@ -347,11 +347,11 @@ if PNG_PATH.exists():
     ax_bar.axis("off")
 
 # ── botón y estado ─────────────────────────────────────────────────────────────
-ax_btn  = fig.add_axes([0.38, 0.06, 0.12, 0.08])
+ax_btn  = fig.add_axes([0.38, 0.03, 0.12, 0.06])
 btn     = widgets.Button(ax_btn, "↺  Actualizar", color="#E3F2FD", hovercolor="#BBDEFB")
-btn.label.set_fontsize(11)
+btn.label.set_fontsize(10)
 btn.label.set_fontweight("bold")
-ts_text = fig.text(0.38, 0.02, "Cargando...", fontsize=9, color="#E65100", ha="left", va="center")
+ts_text = fig.text(0.38, 0.01, "Cargando...", fontsize=8, color="#E65100", ha="left", va="center")
 
 # resultado compartido entre threads (solo main thread dibuja)
 _result  = [None]   # (data, sheets) o Exception
