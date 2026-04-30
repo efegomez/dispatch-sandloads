@@ -20,7 +20,19 @@ _gh_cfg    = json.loads((Path(__file__).parent / ".github_config.json").read_tex
 GH_TOKEN   = _gh_cfg["token"]
 GH_REPO    = _gh_cfg["repo"]
 GH_FILE    = _gh_cfg["file_path"]
-GH_HEADERS = {"Authorization": f"token {GH_TOKEN}", "Accept": "application/vnd.github.v3+json"}
+GH_HEADERS    = {"Authorization": f"token {GH_TOKEN}", "Accept": "application/vnd.github.v3+json"}
+GH_WORKFLOW_ID = 268929470  # Auto Update Chart
+
+def trigger_actions():
+    """Dispara GitHub Actions en cloud — más rápido que push directo desde red lenta."""
+    r = requests.post(
+        f"https://api.github.com/repos/{GH_REPO}/actions/workflows/{GH_WORKFLOW_ID}/dispatches",
+        headers=GH_HEADERS, json={"ref": "main"}, timeout=15
+    )
+    if r.status_code == 204:
+        print("GitHub Actions disparado — imagen actualizada en ~30s.")
+    else:
+        print(f"Error Actions: {r.status_code} {r.text[:100]}")
 
 def _gh_put(path, content_b64, message):
     url  = f"https://api.github.com/repos/{GH_REPO}/contents/{path}"
@@ -369,8 +381,8 @@ def _apply_result():
     ts_text.set_color("#2E7D32")
     fig.canvas.draw()
     fig.savefig(str(PNG_PATH), dpi=150, bbox_inches="tight")
-    push_to_github(str(PNG_PATH))
-    print("Listo.")
+    threading.Thread(target=trigger_actions, daemon=True).start()
+    print("Listo. Actions disparado en background.")
 
 def _start_fetch():
     if _loading[0]:
