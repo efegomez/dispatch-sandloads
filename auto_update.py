@@ -192,7 +192,7 @@ def load_data():
                     continue
                 cell = values[col_i]
                 val  = get_cell_value(cell)
-                if val is None:
+                if val is None or str(val).strip() == "":
                     continue
                 bg = cell.get("userEnteredFormat", {}).get("backgroundColor")
                 if not is_red(bg):
