@@ -1,27 +1,284 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <title>Cargas TREC - Dispatch</title>
-  <style>
-    body { margin: 0; background: #1a1a2e; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: Arial, sans-serif; color: white; }
-    img { max-width: 100%; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
-    p { font-size: 12px; color: #888; margin-top: 10px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sandloads Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0c10;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;padding:1.25rem}
+.dash{background:#111318;border-radius:12px;padding:1.25rem;max-width:1000px;margin:0 auto}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;gap:8px;flex-wrap:wrap}
+.dash-title{font-size:18px;font-weight:500;color:#fff;letter-spacing:.2px}
+.dash-sub{font-size:11px;color:#444;margin-top:3px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:1.25rem}
+.stat{background:#222428;border-radius:8px;padding:10px 14px;border:0.5px solid #2e3035}
+.stat-lbl{font-size:11px;color:#888;margin-bottom:2px}
+.stat-val{font-size:22px;font-weight:500;color:#00E676}
+.stat-sub{font-size:11px;font-weight:500;margin-top:3px}
+.refbtn{font-size:12px;padding:5px 14px;border-radius:8px;border:0.5px solid #2a2a2a;background:#1a1c20;color:#555;cursor:pointer;transition:all .15s}
+.refbtn:hover{color:#00E676;border-color:#00E676}
+.section-lbl{font-size:11px;font-weight:500;padding:6px 0 5px;border-bottom:0.5px solid #1e2024;margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.slbl-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.t-row{display:flex;align-items:center;height:42px;margin-bottom:2px;border-radius:8px;overflow:hidden}
+.t-row.row-done{background:#0a1f12}
+.t-row.row-done-crane{background:#1c1e22}
+.t-row.row-active{background:#151a17}
+.t-row.row-active-crane{background:#18191d}
+.t-row.row-idle{background:#1a1c20}
+.t-row.row-no-show{background:#1f0a12}
+.t-row.row-broken{background:#1f0a12}
+.t-accent{width:3px;height:100%;flex-shrink:0}
+.t-name{width:120px;flex-shrink:0;padding:0 8px 0 9px}
+.t-dname{font-size:13px;font-weight:500;color:#e8e8e8}
+.t-dname.no-show{color:#FF4081}
+.t-dname.idle{color:#6B9FCC}
+.t-dname.broken{color:#FF4081}
+.t-hour{font-size:10px;font-weight:500;margin-top:1px}
+.t-bar{flex:1;position:relative;height:42px;min-width:0}
+.t-bubble{position:absolute;top:50%;transform:translateY(-50%);border-radius:50%;cursor:default;border:1.5px solid;transition:transform .12s}
+.t-bubble:hover{transform:translateY(-50%) scale(1.2);z-index:5}
+.t-badge{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:9px;padding:1px 7px;border-radius:8px;font-weight:500;white-space:nowrap;border:0.5px solid}
+.pb-badge{background:#0a1f12;color:#00E676;border-color:#00a152}
+.crane-badge{background:#1c1e22;color:#9aa0a8;border-color:#4a5058}
+.idle-badge{background:#161a1e;color:#3a4a5a;border-color:#2a3540}
+.noshow-badge{background:#1f0a12;color:#FF4081;border-color:#b5004c}
+.broken-badge{background:#1f0a12;color:#FF4081;border-color:#b5004c}
+.tick-wrap{display:flex;height:18px;margin-bottom:3px}
+.tick-spc{width:123px;flex-shrink:0}
+.tick-bar-t{flex:1;position:relative}
+.tick-line{position:absolute;top:0;height:100%;border-left:0.5px solid #1e2024}
+.tick-lbl{position:absolute;top:2px;font-size:9px;color:#666;transform:translateX(-50%);white-space:nowrap}
+.info-msg{color:#9aa0a8;font-size:11px;padding:8px 12px;background:#1a1c20;border-radius:8px;border:0.5px solid #2e3035;margin-bottom:1rem}
+</style>
 </head>
 <body>
-  <img id="chart">
-  <p id="ts">Cargando...</p>
-  <script>
-    function reload() {
-      var t = Date.now();
-      document.getElementById('chart').src = 'cargas_por_chofer.png?t=' + t;
-      document.getElementById('ts').textContent = 'Actualizado: ' + new Date(t).toLocaleTimeString();
+<div class="dash">
+  <div class="topbar">
+    <div>
+      <div class="dash-title" id="dash-title">Sandloads — 1 mayo 2026</div>
+      <div class="dash-sub" id="upd">Cargando...</div>
+    </div>
+    <button class="refbtn" onclick="loadData()">Refrescar</button>
+  </div>
+  <div id="msg-box"></div>
+  <div class="stats" id="stats"></div>
+  <div id="timeline"></div>
+</div>
+
+<script>
+const SHEET_ID  = "1FlPvLr6eHExUb14CqPtPTUQmlHgUokIjLHFsidWzk-Y";
+const API_KEY   = "AIzaSyDxNpc2JTcpmCMndsTo7t_llqbAPW8K-Eo";
+const REFRESH_MS = 5 * 60 * 1000;
+
+const PB     = {accent:"#00E676", dim:"#00a152", badgeCls:"pb-badge"};
+const CRANE  = {accent:"#9aa0a8", dim:"#4a5058", badgeCls:"crane-badge"};
+const IDLE   = {accent:"#3a4a5a", dim:"#2a3540", badgeCls:"idle-badge"};
+const NOSHOW = {accent:"#FF4081", dim:"#b5004c", badgeCls:"noshow-badge"};
+const BROKEN = {accent:"#FF4081", dim:"#b5004c", badgeCls:"broken-badge"};
+
+function isBroken(d){return d.status==="ROTO"||d.status==="REPAIRING";}
+function isNoShow(d){return d.status==="no contesta";}
+function isIdle(d){return d.status==="pendiente";}
+function palette(d){
+  if(isBroken(d)) return BROKEN;
+  if(isNoShow(d)) return NOSHOW;
+  if(isIdle(d))   return IDLE;
+  return d.type==="CRANE"?CRANE:PB;
+}
+function rowClass(d){
+  if(d.photos>=d.qty&&d.qty>0) return d.type==="CRANE"?"row-done-crane":"row-done";
+  if(isBroken(d)) return "row-broken";
+  if(isNoShow(d)) return "row-no-show";
+  if(isIdle(d))   return "row-idle";
+  return d.type==="CRANE"?"row-active-crane":"row-active";
+}
+function nameClass(d){
+  if(isBroken(d)) return "t-dname broken";
+  if(isNoShow(d)) return "t-dname no-show";
+  if(isIdle(d))   return "t-dname idle";
+  return "t-dname";
+}
+function fmtH(h){return h===0?"12am":h<12?h+"am":h===12?"12pm":(h-12)+"pm";}
+const MIN_H=0,MAX_H=20;
+function pct(h){return((h-MIN_H)/(MAX_H-MIN_H)*100).toFixed(2);}
+
+// Fallback: datos actuales de la sesión
+const SAMPLE=[
+  {name:"Miguel",  truck:"959", startH:0, qty:5,photos:5,status:"ACTIVO",    type:"PB"},
+  {name:"Jesus",   truck:"0385",startH:0, qty:5,photos:2,status:"ACTIVO",    type:"PB"},
+  {name:"Pedro",   truck:"2026",startH:0, qty:5,photos:0,status:"REPAIRING", type:"PB"},
+  {name:"Yanquiel",truck:"122", startH:2, qty:5,photos:5,status:"ACTIVO",    type:"PB"},
+  {name:"Felix",   truck:"24",  startH:2, qty:5,photos:0,status:"ROTO",      type:"PB"},
+  {name:"Juan",    truck:"27",  startH:3, qty:5,photos:3,status:"ACTIVO",    type:"CRANE"},
+  {name:"Leandro", truck:"206", startH:4, qty:5,photos:4,status:"ACTIVO",    type:"PB"},
+  {name:"Yasiel",  truck:"960", startH:4, qty:5,photos:3,status:"ACTIVO",    type:"PB"},
+  {name:"Santiago",truck:"961", startH:5, qty:5,photos:2,status:"ACTIVO",    type:"PB"},
+  {name:"Yordis",  truck:"2947",startH:13,qty:5,photos:1,status:"ACTIVO",    type:"CRANE"},
+];
+
+function parseRows(rows){
+  const now = new Date();
+  const mm  = String(now.getMonth()+1).padStart(2,'0');
+  const dd  = String(now.getDate()).padStart(2,'0');
+  const todayKey = mm+"."+dd;
+
+  const STATUS_NORM={
+    "activo":"ACTIVO","active":"ACTIVO","done":"DONE",
+    "roto":"ROTO","broken":"ROTO","repairing":"REPAIRING",
+    "no contesta":"no contesta","no answer":"no contesta","n/c":"no contesta",
+    "pendiente":"pendiente","pending":"pendiente",
+  };
+
+  const drivers=[];
+  let inBlock=false;
+
+  for(const cells of rows){
+    const c0=(cells[0]||"").trim();
+    if(c0===todayKey){inBlock=true;continue;}
+    if(inBlock&&/^\d{2}\.\d{2}$/.test(c0)&&c0!==todayKey) break;
+    if(!inBlock) continue;
+
+    const rutaIdx=cells.findIndex(v=>/nash/i.test(v||""));
+    if(rutaIdx<0) continue;
+
+    const ruta=cells[rutaIdx]||"";
+    const type=/crane/i.test(ruta)?"CRANE":"PB";
+
+    const namePart=cells.slice(0,rutaIdx)
+      .filter(v=>v&&v.trim()&&!/LLC|Trucking|freight|express|HVC|YBB|JAMG|Montoya|Four|Paragon/i.test(v))
+      .pop()||"";
+    if(!namePart) continue;
+
+    const qty=parseInt(cells[rutaIdx+1]||"")||5;
+    const stRaw=(cells[rutaIdx+2]||"").toLowerCase().trim();
+    const status=STATUS_NORM[stRaw]||(stRaw?"ACTIVO":"pendiente");
+    const photos=cells.slice(rutaIdx+3).filter(v=>/^\d{6,}$/.test((v||"").trim())).length;
+
+    const hm=ruta.match(/(\d{1,2})\s*(am|pm)/i);
+    let startH=0;
+    if(hm){
+      let h=parseInt(hm[1]);
+      const ap=hm[2].toLowerCase();
+      if(ap==="pm"&&h!==12) h+=12;
+      if(ap==="am"&&h===12) h=0;
+      startH=h;
     }
-    reload();
-    setInterval(reload, 60000);
-  </script>
+
+    drivers.push({name:namePart.trim().split(/\s+/)[0],truck:"",startH,qty,photos,status,type});
+  }
+  return drivers;
+}
+
+async function fetchAllRows(){
+  const metaRes=await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?key=${API_KEY}`,
+    {referrerPolicy:"unsafe-url"}
+  );
+  const meta=await metaRes.json();
+  if(meta.error) throw new Error(meta.error.message);
+
+  const monthNames=["Enero","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+  const curMonth=monthNames[new Date().getMonth()];
+  const sheets=meta.sheets||[];
+
+  const sorted=[...sheets].sort((a,b)=>{
+    if(a.properties.title===curMonth) return -1;
+    if(b.properties.title===curMonth) return 1;
+    return 0;
+  });
+
+  let allRows=[];
+  for(const sh of sorted){
+    const name=sh.properties.title;
+    const res=await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(name)}?key=${API_KEY}`,
+      {referrerPolicy:"unsafe-url"}
+    );
+    const json=await res.json();
+    if(json.values) allRows=allRows.concat(json.values);
+  }
+  return allRows;
+}
+
+async function loadData(){
+  document.getElementById("upd").textContent="Actualizando...";
+  document.getElementById("msg-box").innerHTML="";
+  try{
+    const rows=await fetchAllRows();
+    const drivers=parseRows(rows);
+    if(drivers.length===0){
+      document.getElementById("msg-box").innerHTML=
+        `<div class="info-msg">No se encontraron datos para hoy en el sheet — mostrando datos de sesión.</div>`;
+      render(SAMPLE);
+    } else {
+      render(drivers);
+    }
+  }catch(e){
+    document.getElementById("msg-box").innerHTML=
+      `<div class="info-msg">${e.message} — mostrando datos de sesión.</div>`;
+    render(SAMPLE);
+  }
+  document.getElementById("upd").textContent=
+    "Actualizado: "+new Date().toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit"});
+}
+
+function render(DRIVERS){
+  const pb=DRIVERS.filter(d=>d.type==="PB");
+  const crane=DRIVERS.filter(d=>d.type==="CRANE");
+
+  let html="<div class='tick-wrap'><div class='tick-spc'></div><div class='tick-bar-t'>";
+  for(let h=MIN_H;h<=MAX_H;h+=2){
+    html+=`<div class='tick-line' style='left:${pct(h)}%'><span class='tick-lbl'>${fmtH(h)}</span></div>`;
+  }
+  html+="</div></div>";
+
+  function row(d){
+    const pal=palette(d);
+    const startP=parseFloat(pct(d.startH));
+    const bSize=18;
+    const minSpan=25;
+    const naturalSpan=parseFloat(pct(d.startH+d.qty*1.5+0.5))-startP;
+    const span=Math.max(naturalSpan,minSpan);
+    const cappedStart=Math.min(startP, 98-span-8);
+    let bubbles="";
+    for(let i=0;i<d.qty;i++){
+      const done=i<d.photos;
+      const lp=cappedStart+span*(i+0.5)/d.qty;
+      bubbles+=`<div class='t-bubble' style='left:${lp.toFixed(1)}%;width:${bSize}px;height:${bSize}px;background:${done?pal.accent:"transparent"};border-color:${done?pal.accent:pal.dim}'></div>`;
+    }
+    const badge=`<span class='t-badge ${pal.badgeCls}'>${d.type==="CRANE"?"CRANE→Nash":"PB→Nash"}</span>`;
+    const label=d.truck?fmtH(d.startH)+" · #"+d.truck:fmtH(d.startH);
+    return`<div class='t-row ${rowClass(d)}'><div class='t-accent' style='background:${pal.accent}'></div><div class='t-name'><div class='${nameClass(d)}'>${d.name}</div><div class='t-hour' style='color:${pal.accent}'>${label}</div></div><div class='t-bar'>${bubbles}${badge}</div></div>`;
+  }
+
+  html+=`<div class='section-lbl'><div class='slbl-dot' style='background:#00E676'></div><span style='color:#00E676'>PB to Nash</span></div>`;
+  pb.forEach(d=>{html+=row(d);});
+  if(crane.length){
+    html+=`<div class='section-lbl' style='margin-top:10px'><div class='slbl-dot' style='background:#9aa0a8'></div><span style='color:#9aa0a8'>Crane to Nash</span></div>`;
+    crane.forEach(d=>{html+=row(d);});
+  }
+  document.getElementById("timeline").innerHTML=html;
+
+  const tot=DRIVERS.reduce((s,d)=>s+d.photos,0);
+  const qty=DRIVERS.reduce((s,d)=>s+d.qty,0);
+  const active=DRIVERS.filter(d=>d.photos>0).length;
+  const doneD=DRIVERS.filter(d=>d.photos>=d.qty&&d.qty>0).length;
+  const totalD=DRIVERS.filter(d=>d.qty>0).length;
+  const pctC=qty>0?Math.round(tot/qty*100):0;
+  const pctD=totalD>0?Math.round(doneD/totalD*100):0;
+  const subCol=pctC>=75?"#00E676":pctC>=40?"#EF9F27":"#FF4081";
+
+  document.getElementById("stats").innerHTML=`
+    <div class='stat'><div class='stat-lbl'>Activos</div><div class='stat-val'>${active}</div></div>
+    <div class='stat'><div class='stat-lbl'>Cargas hechas</div><div class='stat-val'>${tot}/${qty}</div><div class='stat-sub' style='color:${subCol}'>${pctC}% del día</div></div>
+    <div class='stat'><div class='stat-lbl'>Faltan</div><div class='stat-val'>${qty-tot}</div></div>
+    <div class='stat'><div class='stat-lbl'>Choferes listos</div><div class='stat-val'>${doneD}/${totalD}</div><div class='stat-sub' style='color:#888'>${pctD}% completaron</div></div>
+  `;
+}
+
+loadData();
+setInterval(loadData,REFRESH_MS);
+</script>
 </body>
 </html>
